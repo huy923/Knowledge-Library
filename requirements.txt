@@ -1,0 +1,4 @@
+ollama
+flask
+gradio
+wikipedia-api
