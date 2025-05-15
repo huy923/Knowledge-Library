@@ -20,7 +20,7 @@ export function Header() {
   return (
     <header className="border-b sticky top-0 z-30 bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
-        <SidebarTrigger className="mr-2 md:hidden" />
+        <SidebarTrigger className="mr-2" />
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex items-center gap-2">
             <BookIcon className="h-6 w-6 text-primary" />

@@ -14,8 +14,14 @@ export async function POST(request: NextRequest) {
     // Generate a unique filename
     const filename = `${nanoid()}-${file.name}`
 
+    // Determine folder based on file type
+    let folder = "documents"
+    if (file.type.startsWith("image/")) {
+      folder = "images"
+    }
+
     // Upload to Vercel Blob
-    const blob = await put(filename, file, {
+    const blob = await put(`${folder}/${filename}`, file, {
       access: "public",
     })
 

@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button"
 
 export function MainSidebar() {
   return (
-    <Sidebar>
+    <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-2">
           <BookIcon className="h-6 w-6 text-primary" />
