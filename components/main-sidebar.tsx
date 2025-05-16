@@ -36,7 +36,7 @@ export function MainSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-2">
           <BookIcon className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">SenseLib</span>
+          <span className="text-xl font-bold ">SenseLib</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -47,7 +47,7 @@ export function MainSidebar() {
                 <SidebarMenuButton asChild>
                   <Link href="/">
                     <Home className="h-4 w-4" />
-                    <span>Trang chủ</span>
+                    <span>Trang chủ </span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -192,14 +192,14 @@ export function MainSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      {/* <SidebarFooter>
         <div className="p-4">
           <Button variant="outline" className="w-full">
             <Settings className="h-4 w-4 mr-2" />
             Cài đặt
           </Button>
         </div>
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   )
 }

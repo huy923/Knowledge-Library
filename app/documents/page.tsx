@@ -8,161 +8,50 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { BookOpen, Download, FileText, Filter, Grid3X3, List, Search, Star } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import pool from "@/lib/db"
+import { RowDataPacket } from "mysql2"
 
-export default function DocumentsPage() {
+interface Document extends RowDataPacket {
+  id: number
+  title: string
+  description: string
+  file_size: string
+  file_type: string
+  category: string
+  created_at: Date
+  updated_at: Date
+}
+
+export default async function DocumentsPage() {
+  // Fetch documents from MySQL
+  const [rows] = await pool.execute<Document[]>('SELECT * FROM documents ORDER BY created_at DESC')
+
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Thư viện tài liệu</h1>
-          <p className="text-muted-foreground">Khám phá hơn 10,000+ tài liệu đa lĩnh vực</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <List className="h-4 w-4 mr-2" />
-            Danh sách
-          </Button>
-          <Button variant="outline" size="sm">
-            <Grid3X3 className="h-4 w-4 mr-2" />
-            Lưới
-          </Button>
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Bộ lọc
-          </Button>
-        </div>
-      </div>
+    <div className="container mx-auto py-6 space-y-8">
+      <h1 className="text-3xl font-bold mb-6">Tài liệu</h1>
 
-      {/* Search and Filter */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="md:col-span-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input placeholder="Tìm kiếm tài liệu, tác giả, từ khóa..." className="pl-10" />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Select defaultValue="newest">
-            <SelectTrigger>
-              <SelectValue placeholder="Sắp xếp theo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Mới nhất</SelectItem>
-              <SelectItem value="popular">Phổ biến nhất</SelectItem>
-              <SelectItem value="rating">Đánh giá cao</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Sidebar Filters */}
-        <div className="space-y-6">
-          <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {rows.map((doc) => (
+          <Card key={doc.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle className="text-lg">Lĩnh vực</CardTitle>
+              <CardTitle>{doc.title}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {["Công nghệ thông tin", "Kinh tế", "Khoa học", "Giáo dục", "Y tế", "Kỹ thuật"].map((category) => (
-                <div key={category} className="flex items-center space-x-2">
-                  <Checkbox id={`category-${category}`} />
-                  <label htmlFor={`category-${category}`} className="text-sm cursor-pointer">
-                    {category}
-                  </label>
-                </div>
-              ))}
-              <Button variant="link" size="sm" className="px-0">
-                Xem thêm
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Định dạng</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {["PDF", "DOCX", "PPTX", "Video", "Audio", "Hình ảnh"].map((format) => (
-                <div key={format} className="flex items-center space-x-2">
-                  <Checkbox id={`format-${format}`} />
-                  <label htmlFor={`format-${format}`} className="text-sm cursor-pointer">
-                    {format}
-                  </label>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Đánh giá</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <div key={rating} className="flex items-center space-x-2">
-                  <Checkbox id={`rating-${rating}`} />
-                  <label htmlFor={`rating-${rating}`} className="text-sm cursor-pointer flex items-center">
-                    {Array(rating)
-                      .fill(0)
-                      .map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    {Array(5 - rating)
-                      .fill(0)
-                      .map((_, i) => (
-                        <Star key={i} className="h-4 w-4 text-muted-foreground" />
-                      ))}
-                    <span className="ml-1">trở lên</span>
-                  </label>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Document List */}
-        <div className="md:col-span-3 space-y-4">
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">Tất cả</TabsTrigger>
-              <TabsTrigger value="popular">Phổ biến</TabsTrigger>
-              <TabsTrigger value="recent">Gần đây</TabsTrigger>
-              <TabsTrigger value="recommended">Đề xuất</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="space-y-4 pt-4">
-              {Array(6)
-                .fill(0)
-                .map((_, i) => (
-                  <DocumentCard key={i} />
-                ))}
-              <div className="flex justify-center pt-4">
-                <Button variant="outline">Xem thêm</Button>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                {doc.description}
+              </p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FileText className="h-4 w-4" />
+                <span>{doc.file_type} • {doc.file_size}</span>
               </div>
-            </TabsContent>
-            <TabsContent value="popular" className="space-y-4 pt-4">
-              {Array(3)
-                .fill(0)
-                .map((_, i) => (
-                  <DocumentCard key={i} />
-                ))}
-            </TabsContent>
-            <TabsContent value="recent" className="space-y-4 pt-4">
-              {Array(4)
-                .fill(0)
-                .map((_, i) => (
-                  <DocumentCard key={i} />
-                ))}
-            </TabsContent>
-            <TabsContent value="recommended" className="space-y-4 pt-4">
-              {Array(5)
-                .fill(0)
-                .map((_, i) => (
-                  <DocumentCard key={i} />
-                ))}
-            </TabsContent>
-          </Tabs>
-        </div>
+              <div className="mt-2">
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  {doc.category}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   )

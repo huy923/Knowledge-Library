@@ -24,7 +24,7 @@ export function Header() {
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/" className="flex items-center gap-2">
             <BookIcon className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">SenseLib</span>
+            <span className="text-xl font-bold ">SenseLib</span>
           </Link>
         </div>
         <div className="ml-auto flex items-center gap-2">
