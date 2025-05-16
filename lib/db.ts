@@ -1,13 +1,14 @@
-import { PrismaClient } from "@prisma/client"
+import mysql from 'mysql2/promise'
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient }
+// Create a connection pool
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'root',     // default XAMPP username
+  password: '',     // default XAMPP password is empty
+  database: 'senselib', // your database name
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+})
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  })
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
-
-export default prisma
+export default pool

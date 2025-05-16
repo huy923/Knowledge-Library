@@ -5,16 +5,11 @@ from typing import List
 
 app = FastAPI()
 
-# Implement the retrieval system
-
 # EMBEDDING_MODEL = 'hf.co/CompendiumLabs/bge-base-en-v1.5-gguf'
 EMBEDDING_MODEL = 'nomic-embed-text'
-
-# EMBEDDING_MODEL = 'hf.co/mradermacher/Qwen3-8B-Jailbroken-i1-GGUF'
 LANGUAGE_MODEL = 'hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF'
+
 VECTOR_DB_PATH = 'vector.json'
-
-
 # Each element in the VECTOR_DB will be a tuple (chunk, embedding)
 # The embedding is a list of floats, for example: [0.1, 0.04, -0.34, 0.21, ...]
 VECTOR_DB = []
@@ -101,57 +96,3 @@ async def chatbot(chat_request: ChatRequest):
 		
 	return {"response": response_text}
 
-# # Chatbot
-# @app.post('/history')
-# async def history(chat_request: ChatRequest):
-# 	input_query = chat_request.input_query
-# 	history = [msg for msg in chat_request.history if msg is not None]
-# 	retrieved_knowledge = retrieve(input_query)
-# 	print('Retrieved knowledge:')
-# 	for chunk, similarity in retrieved_knowledge:
-# 		print(f' - (similarity: {similarity:.2f}) {chunk}')
-# 	instruction_prompt = f'''You are a helpful chatbot.
-# 	Use only the following pieces of context to answer the question. Don't make up any new information:
-# 	{'\n'.join([f' - {chunk}' for chunk, similarity in retrieved_knowledge])}
-# 	'''
-# 	print(instruction_prompt)
-# 	stream = ollama.chat(
-# 		model=LANGUAGE_MODEL,
-# 		messages=[
-# 			{'role': 'system', 'content': instruction_prompt},
-# 			{'role': 'user', 'content': input_query},
-# 		],
-# 		stream=True,
-# 	)
-
-
-# async def chatbot(chat_request: ChatRequest):
-#     input_query = chat_request.input_query
-#     history = [msg for msg in chat_request.history if msg is not None]
-#     retrieved_knowledge = retrieve(input_query)
-
-#     print('Retrieved knowledge:')
-#     for chunk, similarity in retrieved_knowledge:
-#         print(f' - (similarity: {similarity:.2f}) {chunk}')
-
-#     instruction_prompt = f'''You are a helpful chatbot.
-#     Use only the following pieces of context to answer the question. Don't make up any new information:
-#     {'\n'.join([f' - {chunk}' for chunk, similarity in retrieved_knowledge])}
-#     '''
-#     # print(instruction_prompt)
-
-#     stream = ollama.chat(
-#     model=LANGUAGE_MODEL,
-#     messages=[
-#         {'role': 'system', 'content': instruction_prompt},
-#         {'role': 'user', 'content': input_query},
-#     ],
-#     stream=True,
-#     )
-
-#     # print the response from the chatbot in real-time
-#     print('Chatbot response:')
-#     @app.get('/test_embedding')
-#     def test_embedding():
-#         for chunk in stream:
-#             print(chunk['message']['content'], end='', flush=True)

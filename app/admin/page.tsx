@@ -105,7 +105,7 @@ export default function AdminPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center justify-center w-48 h-48 rounded-full border-8 border-primary relative">
-                <PieChart className="h-12 w-12 text-primary" />
+                {/* <PieChart className="h-12 w-12 text-primary" /> */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <p className="text-3xl font-bold">45%</p>
