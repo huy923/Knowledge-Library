@@ -59,8 +59,8 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg" alt="Avatar" />
-                    <AvatarFallback>U</AvatarFallback>
+                    <AvatarImage src="/img/user.avif" alt="Avatar" />
+                    {/* <AvatarFallback>U</AvatarFallback> */}
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
