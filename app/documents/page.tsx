@@ -32,25 +32,27 @@ export default async function DocumentsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rows.map((doc) => (
-          <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>{doc.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                {doc.description}
-              </p>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <FileText className="h-4 w-4" />
-                <span>{doc.file_type} • {doc.file_size}</span>
-              </div>
-              <div className="mt-2">
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                  {doc.category}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+          <Link href={`/documents/${doc.id}`} key={doc.id}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader>
+                <CardTitle>{doc.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {doc.description}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>{doc.file_type} • {doc.file_size}</span>
+                </div>
+                <div className="mt-2">
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {doc.category}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

@@ -1,117 +1,144 @@
 import { type NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/db"
 import { hash } from "bcrypt"
+import { RowDataPacket } from "mysql2"
+import { cookies } from 'next/headers'
+import { sign } from "jsonwebtoken"
+
+interface User extends RowDataPacket {
+  id: number
+  username: string
+  password: string
+  email: string
+  role: 'admin' | 'user'
+  created_at: Date
+  updated_at: Date
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const role = searchParams.get("role")
-    const status = searchParams.get("status")
-    const search = searchParams.get("search")
-    const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "10")
-    const skip = (page - 1) * limit
+    const token = cookies().get('auth_token')
 
-    // Build filter conditions
-    const where: any = {}
-
-    if (role) {
-      where.role = role
+    if (!token) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      )
     }
 
-    if (status) {
-      where.status = status
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
-      ]
-    }
-
-    // Get users with pagination
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-          role: true,
-          status: true,
-          createdAt: true,
-          _count: {
-            select: {
-              documents: true,
-              comments: true,
-              savedDocuments: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.user.count({ where }),
-    ])
-
-    return NextResponse.json({
-      users,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+    // In a real app, you should verify the JWT token here
+    // For now, we'll just return the user info from the database
+    const [users] = await prisma.user.findMany({
+      where: { id: 1 },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
       },
     })
+
+    if (!users.length) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      user: {
+        id: users[0].id,
+        username: users[0].username,
+        email: users[0].email,
+        role: users[0].role
+      }
+    })
   } catch (error) {
-    console.error("Error fetching users:", error)
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    console.error("Error fetching user:", error)
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    )
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const { username, password } = await request.json()
 
-    // Check if user with email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: body.email },
+    if (!username || !password) {
+      return NextResponse.json(
+        { error: "Username and password are required" },
+        { status: 400 }
+      )
+    }
+
+    const [users] = await prisma.user.findMany({
+      where: { username: username },
+      select: { id: true, password: true },
     })
 
-    if (existingUser) {
-      return NextResponse.json({ error: "User with this email already exists" }, { status: 400 })
+    if (!users.length) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      )
     }
 
-    // Hash password if provided
-    let hashedPassword
-    if (body.password) {
-      hashedPassword = await hash(body.password, 10)
+    const user = users[0]
+    // In a real app, you should use bcrypt to compare hashed passwords
+    if (password !== user.password) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      )
     }
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name: body.name,
-        email: body.email,
-        password: hashedPassword,
-        image: body.image,
-        bio: body.bio,
-        role: body.role || "USER",
-        status: body.status || "ACTIVE",
+    // Create JWT token
+    const token = sign(
+      { 
+        id: user.id,
+        username: username,
+        role: user.role 
       },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '1d' }
+    )
+
+    // Set cookie
+    cookies().set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 // 1 day
     })
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user
-
-    return NextResponse.json(userWithoutPassword, { status: 201 })
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        username: username,
+        email: user.email,
+        role: user.role
+      }
+    })
   } catch (error) {
-    console.error("Error creating user:", error)
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    console.error("Error during login:", error)
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    cookies().delete('auth_token')
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error during logout:", error)
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    )
   }
 }

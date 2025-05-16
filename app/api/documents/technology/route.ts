@@ -11,6 +11,8 @@ interface Document extends RowDataPacket {
   category: string
   created_at: Date
   updated_at: Date
+  image: string
+  link_file: string
 }
 
 // GET /api/documents/technology

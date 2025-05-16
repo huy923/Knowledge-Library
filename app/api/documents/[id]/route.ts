@@ -1,85 +1,69 @@
 import { type NextRequest, NextResponse } from "next/server"
-import prisma from "@/lib/db"
-import { del } from "@vercel/blob"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import pool from "@/lib/db"
+import { RowDataPacket } from "mysql2"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+interface Document extends RowDataPacket {
+  id: number
+  title: string
+  description: string
+  file_size: string
+  file_type: string
+  category: string
+  created_at: Date
+  updated_at: Date
+  image: string
+  link_file: string
+}
+
+function getIdFromUrl(request: NextRequest): string | null {
+  const segments = request.nextUrl.pathname.split("/")
+  const id = segments[segments.length - 1]
+  return id || null
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const document = await prisma.document.findUnique({
-      where: { id: params.id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
-        category: true,
-        subcategory: true,
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
-      },
-    })
+    const id = getIdFromUrl(request)
+    if (!id) {
+      return NextResponse.json({ error: "Missing ID" }, { status: 400 })
+    }
 
-    if (!document) {
+    const [rows] = await pool.execute<Document[]>(
+      'SELECT * FROM documents WHERE id = ?',
+      [id]
+    )
+
+    if (!rows.length) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    // Increment view count
-    await prisma.document.update({
-      where: { id: params.id },
-      data: { viewCount: { increment: 1 } },
-    })
-
-    return NextResponse.json(document)
+    return NextResponse.json(rows[0])
   } catch (error) {
     console.error("Error fetching document:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const id = getIdFromUrl(request)
+    if (!id) {
+      return NextResponse.json({ error: "Missing ID" }, { status: 400 })
     }
 
-    const document = await prisma.document.findUnique({
-      where: { id: params.id },
-      select: { userId: true, fileUrl: true },
-    })
+    const [rows] = await pool.execute<Document[]>(
+      'SELECT * FROM documents WHERE id = ?',
+      [id]
+    )
 
-    if (!document) {
+    if (!rows.length) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    // Check if user is authorized to delete (owner or admin)
-    if (document.userId !== session.user.id && session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    // Delete file from Blob Store
-    if (document.fileUrl) {
-      try {
-        // Extract pathname from URL
-        const url = new URL(document.fileUrl)
-        await del(url.pathname)
-      } catch (error) {
-        console.error("Error deleting file from Blob Store:", error)
-        // Continue with document deletion even if file deletion fails
-      }
-    }
-
-    // Delete document from database
-    await prisma.document.delete({
-      where: { id: params.id },
-    })
+    await pool.execute(
+      'DELETE FROM documents WHERE id = ?',
+      [id]
+    )
 
     return NextResponse.json({ success: true })
   } catch (error) {

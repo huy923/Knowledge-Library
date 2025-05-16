@@ -11,7 +11,9 @@ CREATE TABLE IF NOT EXISTS documents (
     file_type VARCHAR(50),
     category VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    image VARCHAR(99),
+    link_fille VARCHAR(99)
 );
 
 -- Create categories table
@@ -34,3 +36,17 @@ INSERT INTO categories (name, slug, description) VALUES
 INSERT INTO documents (title, description, file_size, file_type, category) VALUES
 ('Lập trình Python cơ bản', 'Tài liệu hướng dẫn Python từ cơ bản đến nâng cao, phù hợp cho người mới bắt đầu.', '2.5MB', 'PDF', 'programming'),
 ('Machine Learning với TensorFlow', 'Hướng dẫn thực hành về Machine Learning sử dụng TensorFlow framework.', '3.8MB', 'PDF', 'ai-ml'); 
+CREATE TABLE IF NOT EXISTS users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert default admin user (password: admin123)
+INSERT INTO users (username, password, email, role)
+VALUES ('admin', 'admin123', 'admin@example.com', 'admin')
+ON DUPLICATE KEY UPDATE id=id;

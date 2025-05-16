@@ -60,7 +60,7 @@ export function Header() {
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="/img/user.avif" alt="Avatar" />
-                    {/* <AvatarFallback>U</AvatarFallback> */}
+                    <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
