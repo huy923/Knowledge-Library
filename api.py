@@ -2,9 +2,16 @@ import ollama, os, glob,json
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # EMBEDDING_MODEL = 'hf.co/CompendiumLabs/bge-base-en-v1.5-gguf'
 EMBEDDING_MODEL = 'nomic-embed-text'
 LANGUAGE_MODEL = 'hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF'
@@ -61,22 +68,11 @@ async def chatbot(chat_request: ChatRequest):
 	print(f"System message: {system_message} , top_p: {top_p}, temperature: {temperature}, max_tokens: {max_tokens}")
 
 	retrieved_knowledge = retrieve(query=input_query,top_n=top_p,temperature=temperature,max_tokens=max_tokens)
-	
-	# for chunk, similarity in retrieved_knowledge:
-	#     print(f' - (similarity: {similarity:.2f}) {chunk}')
-	# instruction_prompt = f'''{chat_request.system_message}:
-	# {'\n'.join([f' - {chunk}' for chunk, similarity in retrieved_knowledge])}
-	# '''
-	
 	instruction_prompt = f'''You are a helpful chatbot.
   Use only the following pieces of context to answer the question. Don't make up any new information:
   {'\n'.join([f' - {chunk}' for chunk, similarity in retrieved_knowledge])}
   '''
-	# instruction_prompt = f'''Bạn là trợ lý AI thân thiện.Chỉ sử dụng các phần sau của bối cảnh để trả lời câu hỏi. Đừng tạo ra bất kỳ thông tin mới nào:{'\n'.join([f' - {chunk}' for chunk, similarity in retrieved_knowledge])}'''
-#     instruction_prompt = f'''You are a helpful chatbot.
-# Use only the following pieces of context to answer the question. Don't make up any new information:
-# {'\n'.join([f' - {chunk}' for chunk, similarity in retrieved_knowledge])}
-# '''
+
 	print(instruction_prompt)
 	stream = ollama.chat(
 		model=LANGUAGE_MODEL,

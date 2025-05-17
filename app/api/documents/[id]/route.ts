@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [rows] = await pool.execute<Document[]>(
-      'SELECT `documents.id`, `title`, `description`, `file_size`, `file_type`, `category`, `created_at`, `updated_at`, `image`, `link_file` FROM documents join  WHERE documents.id = ?',
+      'SELECT id, title, description, file_size, file_type, category, created_at, updated_at, image, link_file FROM documents WHERE id = ?',
       [id]
     )
 

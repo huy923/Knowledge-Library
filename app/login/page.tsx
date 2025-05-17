@@ -1,5 +1,8 @@
-import type React from "react"
-import Link from "next/link"
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +12,65 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BookIcon } from "@/components/icons"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+    const username = formData.get('username') as string
+    const password = formData.get('password') as string
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      })
+
+      const data = await res.json()
+
+      // Redirect based on login type
+      if (data.admin) {
+        router.push('/admin')
+      } else if (data.user) {
+        router.push('/')
+      } else {
+        setError('Login failed')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // Check admin authentication
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/users', { credentials: 'include' })
+        if (!res.ok) throw new Error('Not authenticated')
+        const data = await res.json()
+        if (data.admin) {
+          router.replace('/admin')
+        }
+      } catch {
+        // Not authenticated, do nothing
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+    checkAuth()
+  }, [router])
+
   return (
     <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8">
       <div className="w-full max-w-md">
