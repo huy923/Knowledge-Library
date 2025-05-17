@@ -192,14 +192,6 @@ export function MainSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      {/* <SidebarFooter>
-        <div className="p-4">
-          <Button variant="outline" className="w-full">
-            <Settings className="h-4 w-4 mr-2" />
-            Cài đặt
-          </Button>
-        </div>
-      </SidebarFooter> */}
     </Sidebar>
   )
 }

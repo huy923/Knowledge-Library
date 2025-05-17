@@ -1,21 +1,13 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Download, Eye } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-// import { Badge } from "@/components/ui/badge"
-// import { Button } from "@/components/ui/button"
-// import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { 
+import {
   BookOpen,
   Calendar,
+  Download,
+  Eye,
   FileText,
   Heart,
   MessageSquare,
@@ -23,184 +15,120 @@ import {
   StarIcon,
   ThumbsUp,
   User,
-} from 'lucide-react'
-interface Document {
-  id: number
-  title: string
-  description: string
-  file_size: string
-  file_type: string
-  category: string
-  created_at: string
-  updated_at: string
-  image: string
-  link_file: string
-}
+} from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
 
-export default function DocumentDetail() {
-  const params = useParams()
-  const [document, setDocument] = useState<Document | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchDocument = async () => {
-      try {
-        const response = await fetch(`/api/documents/${params.id}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch document')
-        }
-        const data = await response.json()
-        setDocument(data)
-      } catch (err) {
-        setError('Failed to load document details')
-        console.error('Error fetching document:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (params.id) {
-      fetchDocument()
-    }
-  }, [params.id])
-
-  const handleDownload = async () => {
-    if (!document?.link_file) return
-
-    try {
-      const baseUrl = window.location.origin
-      const fileUrl = `${baseUrl}${document.link_file}`
-
-      console.log('Attempting to download from:', fileUrl) 
-
-      const response = await fetch(fileUrl)
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status} ${response.statusText}`)
-      }
-
-      // Check if the response is actually a file
-      const contentType = response.headers.get('content-type')
-      if (!contentType) {
-        throw new Error('Invalid response: No content type')
-      }
-
-      // Get the filename from the URL or use the document title
-      const filename = document.link_file.split('/').pop() || document.title
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-
-      // Create and trigger download
-      const link = window.document.createElement('a')
-      link.href = url
-      link.download = filename
-      window.document.body.appendChild(link)
-      link.click()
-      window.document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Error downloading file:', err)
-      alert(`Failed to download file: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    }
+export default function DocumentDetailPage({ params }: { params: { id: string } }) {
+  const document = {
+    id: params.id,
+    title: "Nhập môn Trí tuệ nhân tạo và Học máy",
+    description:
+      "Tài liệu giới thiệu về các khái niệm cơ bản trong lĩnh vực Trí tuệ nhân tạo và Học máy, bao gồm các thuật toán, mô hình và ứng dụng thực tế. Phù hợp cho người mới bắt đầu tìm hiểu về AI và Machine Learning.",
+    category: "Công nghệ thông tin",
+    subcategory: "Trí tuệ nhân tạo",
+    format: "PDF",
+    author: {
+      name: "TS. Nguyễn Văn A",
+      avatar: "/placeholder.svg?height=40&width=40",
+      title: "Giảng viên Đại học Bách Khoa Hà Nội",
+    },
+    pages: 45,
+    size: "2.3 MB",
+    language: "Tiếng Việt",
+    publishDate: "15/05/2023",
+    lastUpdate: "20/05/2023",
+    downloads: 1234,
+    views: 5678,
+    rating: 4.5,
+    ratingCount: 123,
+    image: "/placeholder.svg?height=400&width=300",
+    tags: ["AI", "Machine Learning", "Deep Learning", "Neural Networks", "Python"],
+    tableOfContents: [
+      {
+        title: "Chương 1: Giới thiệu về Trí tuệ nhân tạo",
+        sections: ["1.1 Lịch sử phát triển", "1.2 Các ứng dụng hiện tại", "1.3 Triển vọng tương lai"],
+      },
+      {
+        title: "Chương 2: Cơ bản về Học máy",
+        sections: ["2.1 Học có giám sát", "2.2 Học không giám sát", "2.3 Học tăng cường"],
+      },
+      {
+        title: "Chương 3: Các thuật toán cơ bản",
+        sections: ["3.1 Hồi quy tuyến tính", "3.2 Cây quyết định", "3.3 Mạng nơ-ron nhân tạo"],
+      },
+      {
+        title: "Chương 4: Ứng dụng thực tế",
+        sections: ["4.1 Nhận dạng hình ảnh", "4.2 Xử lý ngôn ngữ tự nhiên", "4.3 Dự đoán dữ liệu"],
+      },
+      {
+        title: "Chương 5: Thực hành với Python",
+        sections: ["5.1 Cài đặt môi trường", "5.2 Thư viện scikit-learn", "5.3 Thư viện TensorFlow"],
+      },
+    ],
+    relatedDocuments: [
+      {
+        id: "2",
+        title: "Học máy với Python",
+        author: "PGS.TS. Trần Thị B",
+        image: "/placeholder.svg?height=200&width=150",
+        category: "Công nghệ thông tin",
+        format: "PDF",
+      },
+      {
+        id: "3",
+        title: "Deep Learning cơ bản và nâng cao",
+        author: "GS. Lê Văn C",
+        image: "/placeholder.svg?height=200&width=150",
+        category: "Công nghệ thông tin",
+        format: "PDF",
+      },
+      {
+        id: "4",
+        title: "Xử lý ngôn ngữ tự nhiên với Python",
+        author: "TS. Phạm Thị D",
+        image: "/placeholder.svg?height=200&width=150",
+        category: "Công nghệ thông tin",
+        format: "DOCX",
+      },
+    ],
+    comments: [
+      {
+        id: "1",
+        user: {
+          name: "Nguyễn Văn X",
+          avatar: "/placeholder.svg?height=40&width=40",
+        },
+        content:
+          "Tài liệu rất hữu ích cho người mới bắt đầu tìm hiểu về AI. Cách trình bày dễ hiểu và có nhiều ví dụ thực tế.",
+        date: "10/06/2023",
+        likes: 15,
+      },
+      {
+        id: "2",
+        user: {
+          name: "Trần Thị Y",
+          avatar: "/placeholder.svg?height=40&width=40",
+        },
+        content:
+          "Phần giới thiệu về các thuật toán học máy rất chi tiết. Tuy nhiên, phần thực hành với Python còn hơi ngắn, hy vọng sẽ có phiên bản cập nhật với nhiều ví dụ code hơn.",
+        date: "05/06/2023",
+        likes: 8,
+      },
+      {
+        id: "3",
+        user: {
+          name: "Lê Văn Z",
+          avatar: "/placeholder.svg?height=40&width=40",
+        },
+        content: "Cảm ơn tác giả đã chia sẻ tài liệu chất lượng. Đã giúp tôi hiểu rõ hơn về các khái niệm cơ bản.",
+        date: "01/06/2023",
+        likes: 5,
+      },
+    ],
   }
 
-  if (loading) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !document) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-600">{error || 'Document not found'}</p>
-          <Link href="/documents">
-            <Button className="mt-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Documents
-            </Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  // return (
-  //   <div className="container mx-auto p-4">
-  //     <Link href="/documents">
-  //       <Button variant="ghost" className="mb-4">
-  //         <ArrowLeft className="mr-2 h-4 w-4" />
-  //         Back to Documents
-  //       </Button>
-  //     </Link>
-
-  //     <div className="gap-6">
-  //       <Card>
-  //         <CardHeader>
-  //           <CardTitle className="text-2xl font-bold">{document.title}</CardTitle>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <div className="aspect-video relative mb-4 ">
-  //             <Image
-  //               src={document.image}
-  //               alt={document.title}
-  //               fill
-  //               className="rounded-l w-auto h-auto"
-  //             />
-  //           </div>
-  //           <div className="space-y-4">
-  //             <div>
-  //               <h3 className="font-semibold mb-2">Description</h3>
-  //               <p className="text-gray-600">{document.description}</p>
-  //             </div>
-  //             <div className="grid grid-cols-2 gap-4">
-  //               <div>
-  //                 <h3 className="font-semibold mb-2">Category</h3>
-  //                 <p className="text-gray-600">{document.category}</p>
-  //               </div>
-  //               <div>
-  //                 <h3 className="font-semibold mb-2">File Type</h3>
-  //                 <p className="text-gray-600">{document.file_type}</p>
-  //               </div>
-  //               <div>
-  //                 <h3 className="font-semibold mb-2">File Size</h3>
-  //                 <p className="text-gray-600">{document.file_size}</p>
-  //               </div>
-  //             </div>
-  //             <div>
-  //               <h3 className="font-semibold mb-2">Last Updated</h3>
-  //               <p className="text-gray-600">
-  //                 {new Date(document.updated_at).toLocaleDateString()}
-  //               </p>
-  //             </div>
-  //             <div className="pt-4">
-  //               <Button
-  //                 className="w-full"
-  //                 onClick={handleDownload}
-  //                 disabled={!document.link_file}
-  //               >
-  //                 <Download className="mr-2 h-4 w-4" />
-  //                 {document.link_file ? 'Download Document' : 'No Download Available'}
-  //               </Button>
-  //             </div>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   </div>
-  // )
   return (
     <div className="container mx-auto py-6 space-y-8">
       {/* Breadcrumb */}
@@ -244,7 +172,7 @@ export default function DocumentDetail() {
           <div className="mt-4 space-y-4">
             <Button className="w-full" size="lg">
               <Download className="mr-2 h-4 w-4" />
-              Tải xuống ({document.title})
+              Tải xuống ({document.format})
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1">
@@ -264,7 +192,7 @@ export default function DocumentDetail() {
           <div>
             <div className="flex flex-wrap gap-2 mb-3">
               <Badge variant="outline" className="bg-primary/10 text-primary">
-                {document.title}
+                {document.format}
               </Badge>
               <Badge variant="outline" className="bg-muted">
                 {document.category}
@@ -439,7 +367,7 @@ export default function DocumentDetail() {
 
         <TabsContent value="related" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* {document.relatedDocuments.map((doc) => (
+            {document.relatedDocuments.map((doc) => (
               <Card key={doc.id} className="overflow-hidden">
                 <div className="aspect-[3/4] relative bg-muted">
                   <Image src={doc.image || "/placeholder.svg"} alt={doc.title} fill className="object-cover" />
@@ -461,7 +389,7 @@ export default function DocumentDetail() {
                   <p className="text-sm text-muted-foreground">{doc.author}</p>
                 </CardContent>
               </Card>
-            ))} */}
+            ))}
           </div>
         </TabsContent>
       </Tabs>
