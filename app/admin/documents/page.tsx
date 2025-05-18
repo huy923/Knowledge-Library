@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { hadUnsupportedValue } from "next/dist/build/analysis/get-page-static-info"
 
 interface Document {
   id: number
@@ -79,6 +80,20 @@ export default function AdminDocumentsPage() {
       })
 
       if (!res.ok) throw new Error('Failed to delete document')
+
+      fetchDocuments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete document')
+    }
+  }
+  const handleEditDocument = async (id: number) => {
+
+    try {
+      const res = await fetch(`/api/admin/documents/${id}`, {
+        method: 'PUT'
+      })
+
+      if (!res.ok) throw new Error('Failed to edit document')
 
       fetchDocuments()
     } catch (err) {
@@ -152,6 +167,23 @@ export default function AdminDocumentsPage() {
                       Mô tả
                     </Label>
                     <Textarea id="description" placeholder="Nhập mô tả tài liệu" className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="file" className="text-right">
+                      Image
+                    </Label>
+                    <div className="col-span-3">
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                        <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Kéo và thả file vào đây hoặc click để chọn file
+                        </p>
+                        <Input id="file" type="file" className="hidden" />
+                        <Button variant="outline" size="sm" asChild>
+                          <label htmlFor="file">Chọn file</label>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="file" className="text-right">
@@ -250,7 +282,7 @@ export default function AdminDocumentsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-                              <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditDocument(doc.id)}>Chỉnh sửa</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteDocument(doc.id)}>
                                 Xóa

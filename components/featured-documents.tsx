@@ -50,12 +50,16 @@ export default function FeaturedDocuments() {
       {documents.map((doc) => (
         <Card key={doc.id} className="overflow-hidden flex flex-col">
           <div className="aspect-video relative bg-muted">
-            <Image
-              src={doc.image || "/placeholder.svg"}
-              alt={doc.title}
-              fill
-              className="object-cover"
-            />
+            <Link href={`/documents/${doc.id}`} className="object-cover transition-shadow duration-300 ease-in-out transform hover:scale-105 hover:brightness-110 rounded-md">
+              <div className="relative aspect-[3/4]">
+                <Image
+                  src={doc.image || "/placeholder.svg"}
+                  alt={doc.title}
+                  fill
+                  className="object-cover rounded-t-lg"
+                />
+              </div>
+            </Link>
             <div className="absolute top-2 left-2 flex gap-2">
               <Badge variant="outline" className="bg-primary/10 text-primary">
                 {doc.file_type}

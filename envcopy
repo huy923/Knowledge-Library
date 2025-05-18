@@ -1,0 +1,6 @@
+NEXT_PUBLIC_API_URL=http://localhost:3000
+JWT_SECRET= #paste me
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=senselib

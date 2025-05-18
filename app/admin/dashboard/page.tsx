@@ -172,10 +172,7 @@ export default function AdminDashboardPage() {
                       <LineChart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-12 w-12 text-muted-foreground opacity-20" />
                       {Array.from({ length: 12 }).map((_, i) => (
                         <div key={i} className="flex flex-col items-center gap-1 w-full">
-                          <div
-                            className="w-full bg-primary rounded-t"
-                            style={{ height: `${Math.floor(Math.random() * 100) + 20}px` }}
-                          ></div>
+                          <div className="w-full bg-primary rounded-t" style={{ height: `${Math.floor(Math.random() * 100) + 20}px` }}></div>
                           <span className="text-xs text-muted-foreground">{i + 1}</span>
                         </div>
                       ))}

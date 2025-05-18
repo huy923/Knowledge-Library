@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Document not found" }, { status: 404 })
     }
 
-    return NextResponse.json(rows[0])
+    return NextResponse.json(rows)
   } catch (error) {
     console.error(`Error fetching document with id ${params.id}:`, error)
     return NextResponse.json({ message: "An error occurred while fetching the document" }, { status: 500 })
