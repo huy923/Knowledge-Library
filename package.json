@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth/core": "^0.39.1",
     "@hookform/resolvers": "^3.9.1",
     "@neondatabase/serverless": "^1.0.0",
     "@prisma/client": "^6.8.0",
@@ -55,6 +56,7 @@
     "mysql2": "^3.14.1",
     "nanoid": "latest",
     "next": "15.2.4",
+    "next-auth": "^4.24.11",
     "next-themes": "latest",
     "prisma": "^6.8.0",
     "react": "^19",

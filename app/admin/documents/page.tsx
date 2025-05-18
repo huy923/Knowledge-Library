@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -30,8 +30,69 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
+interface Document {
+  id: number
+  title: string
+  description: string
+  file_size: string
+  file_type: string
+  category: string
+  author: string
+  pages: number
+  downloads: number
+  image: string
+  link_file: string
+  created_at: string
+  updated_at: string
+}
+
 export default function AdminDocumentsPage() {
   const [openDialog, setOpenDialog] = useState(false)
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchDocuments()
+  }, [])
+
+  const fetchDocuments = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/admin/documents')
+      if (!res.ok) throw new Error('Failed to fetch documents')
+      const data = await res.json()
+      setDocuments(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load documents')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteDocument = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this document?')) return
+
+    try {
+      const res = await fetch(`/api/admin/documents/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete document')
+
+      fetchDocuments()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete document')
+    }
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">{error}</div>
+  }
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -151,19 +212,19 @@ export default function AdminDocumentsPage() {
                       <TableHead>Danh mục</TableHead>
                       <TableHead>Tác giả</TableHead>
                       <TableHead>Ngày tạo</TableHead>
-                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>Lượt tải</TableHead>
                       <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{i + 1}</TableCell>
+                    {documents.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell>{doc.id}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 bg-muted rounded overflow-hidden">
                               <Image
-                                src={`/placeholder.svg?height=40&width=40`}
+                                src={doc.image || "/placeholder.svg"}
                                 alt="Document thumbnail"
                                 width={40}
                                 height={40}
@@ -171,28 +232,15 @@ export default function AdminDocumentsPage() {
                               />
                             </div>
                             <div>
-                              <p className="font-medium">Nhập môn Trí tuệ nhân tạo và Học máy</p>
-                              <p className="text-xs text-muted-foreground">PDF, 2.3 MB</p>
+                              <p className="font-medium">{doc.title}</p>
+                              <p className="text-xs text-muted-foreground">{doc.file_type}, {doc.file_size}</p>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>Công nghệ thông tin</TableCell>
-                        <TableCell>TS. Nguyễn Văn A</TableCell>
-                        <TableCell>15/05/2023</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              i % 3 === 0
-                                ? "bg-green-50 text-green-600 border-green-200"
-                                : i % 3 === 1
-                                  ? "bg-yellow-50 text-yellow-600 border-yellow-200"
-                                  : "bg-red-50 text-red-600 border-red-200"
-                            }
-                          >
-                            {i % 3 === 0 ? "Đã duyệt" : i % 3 === 1 ? "Chờ duyệt" : "Từ chối"}
-                          </Badge>
-                        </TableCell>
+                        <TableCell>{doc.category}</TableCell>
+                        <TableCell>{doc.author}</TableCell>
+                        <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>{doc.downloads}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -204,10 +252,9 @@ export default function AdminDocumentsPage() {
                               <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
                               <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem>
-                                {i % 3 === 0 ? "Hủy duyệt" : i % 3 === 1 ? "Duyệt" : "Duyệt lại"}
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteDocument(doc.id)}>
+                                Xóa
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">Xóa</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -217,7 +264,9 @@ export default function AdminDocumentsPage() {
                 </Table>
               </CardContent>
               <CardFooter className="flex items-center justify-between p-4">
-                <div className="text-sm text-muted-foreground">Hiển thị 1-10 của 125 tài liệu</div>
+                <div className="text-sm text-muted-foreground">
+                  Hiển thị 1-{documents.length} của {documents.length} tài liệu
+                </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" disabled>
                     Trước
@@ -227,197 +276,6 @@ export default function AdminDocumentsPage() {
                   </Button>
                 </div>
               </CardFooter>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="pending">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tài liệu chờ duyệt</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">ID</TableHead>
-                      <TableHead>Tên tài liệu</TableHead>
-                      <TableHead>Danh mục</TableHead>
-                      <TableHead>Người tải lên</TableHead>
-                      <TableHead>Ngày tải lên</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{i + 1}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-muted rounded overflow-hidden">
-                              <Image
-                                src={`/placeholder.svg?height=40&width=40`}
-                                alt="Document thumbnail"
-                                width={40}
-                                height={40}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div>
-                              <p className="font-medium">Tài liệu chờ duyệt {i + 1}</p>
-                              <p className="text-xs text-muted-foreground">PDF, 1.8 MB</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>Công nghệ thông tin</TableCell>
-                        <TableCell>Nguyễn Văn {String.fromCharCode(65 + i)}</TableCell>
-                        <TableCell>10/0{i + 1}/2023</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" className="h-8">
-                              Xem
-                            </Button>
-                            <Button size="sm" className="h-8">
-                              Duyệt
-                            </Button>
-                            <Button variant="destructive" size="sm" className="h-8">
-                              Từ chối
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="approved">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tài liệu đã duyệt</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">ID</TableHead>
-                      <TableHead>Tên tài liệu</TableHead>
-                      <TableHead>Danh mục</TableHead>
-                      <TableHead>Tác giả</TableHead>
-                      <TableHead>Lượt tải</TableHead>
-                      <TableHead>Ngày duyệt</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{i + 1}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-muted rounded overflow-hidden">
-                              <Image
-                                src={`/placeholder.svg?height=40&width=40`}
-                                alt="Document thumbnail"
-                                width={40}
-                                height={40}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div>
-                              <p className="font-medium">Tài liệu đã duyệt {i + 1}</p>
-                              <p className="text-xs text-muted-foreground">PDF, 3.2 MB</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>Kinh tế & Kinh doanh</TableCell>
-                        <TableCell>TS. Trần Thị {String.fromCharCode(65 + i)}</TableCell>
-                        <TableCell>{(i + 1) * 123}</TableCell>
-                        <TableCell>05/0{i + 1}/2023</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-                              <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem>Hủy duyệt</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">Xóa</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="rejected">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tài liệu bị từ chối</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">ID</TableHead>
-                      <TableHead>Tên tài liệu</TableHead>
-                      <TableHead>Người tải lên</TableHead>
-                      <TableHead>Lý do từ chối</TableHead>
-                      <TableHead>Ngày từ chối</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{i + 1}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-muted rounded overflow-hidden">
-                              <Image
-                                src={`/placeholder.svg?height=40&width=40`}
-                                alt="Document thumbnail"
-                                width={40}
-                                height={40}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div>
-                              <p className="font-medium">Tài liệu bị từ chối {i + 1}</p>
-                              <p className="text-xs text-muted-foreground">PDF, 2.5 MB</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>Lê Văn {String.fromCharCode(65 + i)}</TableCell>
-                        <TableCell>{i % 2 === 0 ? "Vi phạm bản quyền" : "Nội dung không phù hợp"}</TableCell>
-                        <TableCell>20/0{i + 1}/2023</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" className="h-8">
-                              Xem
-                            </Button>
-                            <Button size="sm" className="h-8">
-                              Duyệt lại
-                            </Button>
-                            <Button variant="destructive" size="sm" className="h-8">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

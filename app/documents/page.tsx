@@ -23,7 +23,6 @@ interface Document extends RowDataPacket {
 }
 
 export default async function DocumentsPage() {
-  // Fetch documents from MySQL
   const [rows] = await pool.execute<Document[]>('SELECT * FROM documents ORDER BY created_at DESC')
 
   return (

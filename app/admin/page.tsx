@@ -37,12 +37,14 @@ interface DashboardStats {
 interface Document {
   id: number
   title: string
+  description: string
+  file_size: string
+  file_type: string
   category: string
-  author: string
-  createdAt: string
-  status: 'approved' | 'pending' | 'rejected'
-  fileSize: string
-  fileType: string
+  created_at: string
+  updated_at: string
+  image: string
+  link_file: string
 }
 
 export default function AdminPage() {
@@ -238,9 +240,9 @@ export default function AdminPage() {
                       <th className="h-12 px-4 text-left align-middle font-medium">ID</th>
                       <th className="h-12 px-4 text-left align-middle font-medium">Tên tài liệu</th>
                       <th className="h-12 px-4 text-left align-middle font-medium">Danh mục</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium">Tác giả</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">Loại file</th>
                       <th className="h-12 px-4 text-left align-middle font-medium">Ngày tạo</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium">Trạng thái</th>
+                      <th className="h-12 px-4 text-left align-middle font-medium">Kích thước</th>
                       <th className="h-12 px-4 text-left align-middle font-medium">Thao tác</th>
                     </tr>
                   </thead>
@@ -255,7 +257,7 @@ export default function AdminPage() {
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 bg-muted rounded overflow-hidden">
                               <Image
-                                src={`/placeholder.svg?height=40&width=40`}
+                                src={doc.image || "/placeholder.svg"}
                                 alt="Document thumbnail"
                                 width={40}
                                 height={40}
@@ -264,26 +266,14 @@ export default function AdminPage() {
                             </div>
                             <div>
                               <p className="font-medium">{doc.title}</p>
-                              <p className="text-xs text-muted-foreground">{doc.fileType}, {doc.fileSize}</p>
+                              <p className="text-xs text-muted-foreground">{doc.file_type}, {doc.file_size}</p>
                             </div>
                           </div>
                         </td>
                         <td className="p-4 align-middle">{doc.category}</td>
-                        <td className="p-4 align-middle">{doc.author}</td>
-                        <td className="p-4 align-middle">{doc.createdAt}</td>
-                        <td className="p-4 align-middle">
-                          <Badge
-                            variant="outline"
-                            className={`${doc.status === 'approved'
-                              ? 'bg-green-50 text-green-600 border-green-200'
-                              : doc.status === 'pending'
-                                ? 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                                : 'bg-red-50 text-red-600 border-red-200'
-                              }`}
-                          >
-                            {doc.status === 'approved' ? 'Đã duyệt' : doc.status === 'pending' ? 'Đang chờ' : 'Từ chối'}
-                          </Badge>
-                        </td>
+                        <td className="p-4 align-middle">{doc.file_type}</td>
+                        <td className="p-4 align-middle">{new Date(doc.created_at).toLocaleDateString()}</td>
+                        <td className="p-4 align-middle">{doc.file_size}</td>
                         <td className="p-4 align-middle">
                           <div className="flex gap-2">
                             <Button variant="ghost" size="icon" className="h-8 w-8">

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BookOpen, FileText, TrendingUp, Users } from "lucide-react"
 import Image from "next/image"
-import { FeaturedDocuments } from "@/components/featured-documents"
+import FeaturedDocuments from "@/components/featured-documents"
 import { PopularCategories } from "@/components/popular-categories"
 import { RecentActivity } from "@/components/recent-activity"
 

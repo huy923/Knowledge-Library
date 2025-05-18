@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import pool from "@/lib/db"
 import { RowDataPacket } from "mysql2"
+import { link } from "fs"
 
 interface Document extends RowDataPacket {
   id: number
@@ -20,7 +21,6 @@ function getIdFromUrl(request: NextRequest): string | null {
   const id = segments[segments.length - 1]
   return id || null
 }
-
 export async function GET(request: NextRequest) {
   try {
     const id = getIdFromUrl(request)
@@ -68,6 +68,41 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error deleting document:", error)
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const id = getIdFromUrl(request)
+    if (!id) {
+      return NextResponse.json({ error: "Missing ID" }, { status: 400 })
+    }
+
+    const [rows] = await pool.execute<Document[]>(
+      'SELECT * FROM documents WHERE id = ?',
+      [id]
+    )
+
+    if (!rows.length) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 })
+    }
+
+    const body = await request.json()
+    const { image, link_file } = body
+
+    if (!image || !link_file) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    await pool.execute(
+      'UPDATE documents SET image = ?, link_file = ? WHERE id = ?',
+      [image, link_file, id]
+    )
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error updating document:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }

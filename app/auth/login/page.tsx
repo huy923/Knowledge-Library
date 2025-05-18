@@ -15,7 +15,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center text-center mb-6">
           <BookIcon className="h-12 w-12 text-primary mb-2" />
           <h1 className="text-2xl font-bold">SenseLib</h1>
-          <p className="text-muted-foreground">Tri thức cho cộng đồng</p>
+          <p className="text-muted-text-accent-foreground">Tri thức cho cộng đồng</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">

@@ -1,28 +1,29 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/db"
+import { RowDataPacket } from "mysql2"
+
+interface CountResult extends RowDataPacket {
+    count: number
+}
 
 export async function GET() {
     try {
-        // Get total documents
-        const [documentsResult] = await prisma.query(
+        const [documentsResult] = await prisma.query<CountResult[]>(
             'SELECT COUNT(*) as count FROM documents'
         )
         const totalDocuments = documentsResult[0].count
 
-        // Get total users
-        const [usersResult] = await prisma.query(
+        const [usersResult] = await prisma.query<CountResult[]>(
             'SELECT COUNT(*) as count FROM users'
         )
         const totalUsers = usersResult[0].count
 
-        // Get total downloads
-        const [downloadsResult] = await prisma.query(
+        const [downloadsResult] = await prisma.query<CountResult[]>(
             'SELECT COUNT(*) as count FROM document_downloads'
         )
         const totalDownloads = downloadsResult[0].count
 
-        // Get new documents this month
-        const [newDocumentsResult] = await prisma.query(
+        const [newDocumentsResult] = await prisma.query<CountResult[]>(
             'SELECT COUNT(*) as count FROM documents WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())'
         )
         const newDocuments = newDocumentsResult[0].count

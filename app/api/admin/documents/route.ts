@@ -1,58 +1,67 @@
 import { NextResponse } from "next/server"
-import prisma from "@/lib/db"
+import pool from "@/lib/db"
+import { getAdminUser } from "@/lib/auth"
+import { RowDataPacket, ResultSetHeader } from "mysql2"
 
-export async function GET() {
-    try {
-        const [documents] = await prisma.query(`
-      SELECT 
-        d.id,
-        d.title,
-        d.file_size as fileSize,
-        d.file_type as fileType,
-        d.created_at as createdAt,
-        d.status,
-        c.name as category,
-        u.username as author
-      FROM documents d
-      LEFT JOIN categories c ON d.category_id = c.id
-      LEFT JOIN users u ON d.user_id = u.id
-      ORDER BY d.created_at DESC
-    `)
-
-        return NextResponse.json(documents)
-    } catch (error) {
-        console.error("Error fetching documents:", error)
-        return NextResponse.json(
-            { error: "Internal Server Error" },
-            { status: 500 }
-        )
-    }
+interface DocumentRow extends RowDataPacket {
+  id: number
+  title: string
+  description: string
+  file_size: string
+  file_type: string
+  category: string
+  author: string
+  pages: number
+  downloads: number
+  image: string
+  link_file: string
+  created_at: Date
+  updated_at: Date
 }
 
-export async function DELETE(request: Request) {
-    try {
-        const { searchParams } = new URL(request.url)
-        const id = searchParams.get('id')
+export async function GET() {
+  try {
+    const admin = await getAdminUser()
 
-        if (!id) {
-            return NextResponse.json(
-                { error: "Document ID is required" },
-                { status: 400 }
-            )
-        }
-
-        // Delete document
-        await prisma.query(
-            'DELETE FROM documents WHERE id = ?',
-            [id]
-        )
-
-        return NextResponse.json({ message: "Document deleted successfully" })
-    } catch (error) {
-        console.error("Error deleting document:", error)
-        return NextResponse.json(
-            { error: "Internal Server Error" },
-            { status: 500 }
-        )
+    if (!admin) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
-} 
+
+    const [rows] = await pool.execute("SELECT * FROM documents ORDER BY created_at DESC")
+
+    return NextResponse.json(rows)
+  } catch (error) {
+    console.error("Error fetching documents:", error)
+    return NextResponse.json({ message: "An error occurred while fetching documents" }, { status: 500 })
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const admin = await getAdminUser()
+
+    if (!admin) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { title, description, file_size, file_type, category, author, pages, image, link_file } = body
+
+    if (!title) {
+      return NextResponse.json({ message: "Title is required" }, { status: 400 })
+    }
+
+    const [result] = await pool.execute(
+      "INSERT INTO documents (title, description, file_size, file_type, category, author, pages, image, link_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [title, description, file_size, file_type, category, author, pages, image, link_file]
+    )
+
+    return NextResponse.json({
+      message: "Document created successfully",
+      id: (result as ResultSetHeader).insertId,
+    })
+  } catch (error) {
+    console.error("Error creating document:", error)
+    return NextResponse.json({ message: "An error occurred while creating the document" }, { status: 500 })
+  }
+}

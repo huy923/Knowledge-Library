@@ -1,63 +1,61 @@
 import { type NextRequest, NextResponse } from "next/server"
-import prisma from "@/lib/db"
+import pool from "@/lib/db"
+import { RowDataPacket, ResultSetHeader } from "mysql2"
+
+interface DocumentRow extends RowDataPacket {
+  id: number
+  title: string
+  description: string
+  file_size: string
+  file_type: string
+  category: string
+  created_at: Date
+  updated_at: Date
+  image: string
+  link_file: string
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get("category")
-    const status = searchParams.get("status")
     const search = searchParams.get("search")
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Number.parseInt(searchParams.get("limit") || "10")
-    const skip = (page - 1) * limit
+    const offset = (page - 1) * limit
 
-    // Build filter conditions
-    const where: any = {}
+    // Build query conditions
+    let query = "SELECT * FROM documents"
+    const conditions = []
+    const params = []
 
     if (category) {
-      where.categoryId = category
-    }
-
-    if (status) {
-      where.status = status
+      conditions.push("category = ?")
+      params.push(category)
     }
 
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-        { author: { contains: search, mode: "insensitive" } },
-      ]
+      conditions.push("(title LIKE ? OR description LIKE ?)")
+      params.push(`%${search}%`, `%${search}%`)
     }
 
-    // Get documents with pagination
-    const [documents, total] = await Promise.all([
-      prisma.document.findMany({
-        where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-          category: true,
-          subcategory: true,
-          tags: {
-            include: {
-              tag: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.document.count({ where }),
-    ])
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ")
+    }
+
+    // Add pagination
+    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+    params.push(limit, offset)
+
+    // Get total count
+    const [countResult] = await pool.execute<RowDataPacket[]>(
+      `SELECT COUNT(*) as total FROM documents ${conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : ""}`,
+      params.slice(0, -2) 
+    )
+    const total = countResult[0].total
+
+    // Get documents
+    const [documents] = await pool.execute<DocumentRow[]>(query, params)
 
     return NextResponse.json({
       documents,
@@ -78,67 +76,41 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Create document
-    const document = await prisma.document.create({
-      data: {
-        title: body.title,
-        description: body.description,
-        author: body.author,
-        publisher: body.publisher,
-        language: body.language,
-        pages: body.pages ? Number.parseInt(body.pages) : null,
-        fileUrl: body.fileUrl,
-        fileType: body.fileType,
-        fileSize: body.fileSize,
-        coverImage: body.coverImage,
-        publishDate: body.publishDate ? new Date(body.publishDate) : null,
-        visibility: body.visibility || "PUBLIC",
-        license: body.license,
-        allowComments: body.allowComments !== false,
-        allowDownload: body.allowDownload !== false,
-        userId: body.userId,
-        categoryId: body.categoryId,
-        subcategoryId: body.subcategoryId,
-      },
-    })
+    const [result] = await pool.execute<ResultSetHeader>(
+      `INSERT INTO documents (
+        title, description, file_size, file_type, category, 
+        image, link_file
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        body.title,
+        body.description,
+        body.fileSize,
+        body.fileType,
+        body.category,
+        body.image || "/placeholder.svg",
+        body.linkFile,
+      ]
+    )
 
-    // Add tags if provided
-    if (body.tags && body.tags.length > 0) {
-      const tagConnections = await Promise.all(
-        body.tags.map(async (tagName: string) => {
-          // Find or create tag
-          const tag = await prisma.tag.upsert({
-            where: { name: tagName },
-            update: {},
-            create: {
-              name: tagName,
-              slug: tagName.toLowerCase().replace(/\s+/g, "-"),
-            },
-          })
-
-          // Connect tag to document
-          return prisma.tagsOnDocuments.create({
-            data: {
-              documentId: document.id,
-              tagId: tag.id,
-            },
-          })
-        }),
-      )
-    }
-
-    // Create activity record
-    await prisma.activity.create({
-      data: {
-        type: "UPLOAD",
-        userId: body.userId,
-        documentId: document.id,
-      },
-    })
-
-    return NextResponse.json(document, { status: 201 })
+    return NextResponse.json({ success: true, id: result.insertId }, { status: 201 })
   } catch (error) {
     console.error("Error creating document:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+  }
+}
+
+export async function GET_mysql() {
+  try {
+    const [rows] = await pool.execute<DocumentRow[]>(
+      "SELECT * FROM documents ORDER BY created_at DESC"
+    )
+
+    return NextResponse.json(rows)
+  } catch (error) {
+    console.error("Error fetching documents:", error)
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    )
   }
 }

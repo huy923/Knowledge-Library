@@ -1,54 +1,60 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcrypt"
 import pool from "@/lib/db"
-import { getAdminUser } from "@/lib/auth"
+import { cookies } from "next/headers"
+import { jwtVerify } from "jose"
+import { RowDataPacket } from "mysql2"
+
+interface AdminRow extends RowDataPacket {
+  id: number
+  username: string
+  email: string
+  password: string
+}
 
 export async function POST(request: Request) {
   try {
-    // Lấy thông tin admin từ token
-    const admin = await getAdminUser()
+    const { currentPassword, newPassword } = await request.json()
+    const cookieStore = await cookies()
+    const token = cookieStore.get("admin_token")
 
-    if (!admin) {
+    if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { currentPassword, newPassword } = body
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_do_not_use_in_production")
+    const { payload } = await jwtVerify(token.value, secret)
+    const adminId = payload.id
 
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ message: "Mật khẩu hiện tại và mật khẩu mới là bắt buộc" }, { status: 400 })
-    }
-
-    // Kiểm tra độ dài mật khẩu mới
-    if (newPassword.length < 8) {
-      return NextResponse.json({ message: "Mật khẩu mới phải có ít nhất 8 ký tự" }, { status: 400 })
-    }
-
-    // Lấy thông tin admin từ database
-    const [rows] = await pool.execute("SELECT * FROM admin WHERE id = ?", [admin.id])
+    const [rows] = await pool.execute<AdminRow[]>(
+      "SELECT * FROM admin WHERE id = ?",
+      [adminId]
+    )
 
     if (!Array.isArray(rows) || rows.length === 0) {
-      return NextResponse.json({ message: "Admin không tồn tại" }, { status: 404 })
+      return NextResponse.json({ message: "Admin not found" }, { status: 404 })
     }
 
-    const adminData = rows[0]
+    const admin = rows[0]
 
-    // Kiểm tra mật khẩu hiện tại
-    const passwordMatch = await bcrypt.compare(currentPassword, adminData.password)
-
-    if (!passwordMatch) {
-      return NextResponse.json({ message: "Mật khẩu hiện tại không đúng" }, { status: 400 })
+    if (currentPassword !== admin.password) {
+      return NextResponse.json({ message: "Current password is incorrect" }, { status: 400 })
     }
 
-    // Hash mật khẩu mới
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    // Cập nhật mật khẩu trong database
-    await pool.execute("UPDATE admin SET password = ? WHERE id = ?", [hashedPassword, admin.id])
+    // Update password
+    await pool.execute(
+      "UPDATE admin SET password = ? WHERE id = ?",
+      [hashedPassword, adminId]
+    )
 
-    return NextResponse.json({ success: true, message: "Mật khẩu đã được cập nhật thành công" })
+    return NextResponse.json({ message: "Password updated successfully" })
   } catch (error) {
-    console.error("Change password error:", error)
-    return NextResponse.json({ message: "Đã xảy ra lỗi khi đổi mật khẩu" }, { status: 500 })
+    console.error("Password change error:", error)
+    return NextResponse.json(
+      { message: "Failed to change password" },
+      { status: 500 }
+    )
   }
 }

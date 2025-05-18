@@ -1,21 +1,13 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Download, Eye } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-// import { Badge } from "@/components/ui/badge"
-// import { Button } from "@/components/ui/button"
-// import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { 
+import {
   BookOpen,
   Calendar,
+  Download,
+  Eye,
   FileText,
   Heart,
   MessageSquare,
@@ -23,184 +15,63 @@ import {
   StarIcon,
   ThumbsUp,
   User,
-} from 'lucide-react'
-interface Document {
+} from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { RowDataPacket } from "mysql2"
+import pool from "@/lib/db"
+
+interface Document extends RowDataPacket {
   id: number
   title: string
   description: string
   file_size: string
   file_type: string
   category: string
-  created_at: string
-  updated_at: string
+  author: string
+  pages: number
+  downloads: number
   image: string
   link_file: string
+  created_at: Date
+  updated_at: Date
 }
 
-export default function DocumentDetail() {
-  const params = useParams()
-  const [document, setDocument] = useState<Document | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface Comment extends RowDataPacket {
+  id: number
+  document_id: number
+  user_id: number
+  content: string
+  likes: number
+  created_at: Date
+  updated_at: Date
+  username: string
+  email: string
+}
 
-  useEffect(() => {
-    const fetchDocument = async () => {
-      try {
-        const response = await fetch(`/api/documents/${params.id}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch document')
-        }
-        const data = await response.json()
-        setDocument(data)
-      } catch (err) {
-        setError('Failed to load document details')
-        console.error('Error fetching document:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+async function getDocument(id: string) {
+  const [rows] = await pool.execute<Document[]>("SELECT * FROM documents WHERE id = ?", [id])
+  return rows[0]
+}
 
-    if (params.id) {
-      fetchDocument()
-    }
-  }, [params.id])
-
-  const handleDownload = async () => {
-    if (!document?.link_file) return
-
-    try {
-      const baseUrl = window.location.origin
-      const fileUrl = `${baseUrl}${document.link_file}`
-
-      console.log('Attempting to download from:', fileUrl) 
-
-      const response = await fetch(fileUrl)
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status} ${response.statusText}`)
-      }
-
-      // Check if the response is actually a file
-      const contentType = response.headers.get('content-type')
-      if (!contentType) {
-        throw new Error('Invalid response: No content type')
-      }
-
-      // Get the filename from the URL or use the document title
-      const filename = document.link_file.split('/').pop() || document.title
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-
-      // Create and trigger download
-      const link = window.document.createElement('a')
-      link.href = url
-      link.download = filename
-      window.document.body.appendChild(link)
-      link.click()
-      window.document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Error downloading file:', err)
-      alert(`Failed to download file: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    }
+async function getComments(documentId: string) {
+  const [rows] = await pool.execute<Comment[]>(
+    `SELECT c.*, u.username, u.email 
+     FROM comments c 
+     JOIN users u ON c.user_id = u.id 
+     WHERE c.document_id = ? 
+     ORDER BY c.created_at DESC`,
+    [documentId]
+  )
+  return rows
+}
+export default async function DocumentDetailPage({ params }: { params: { id: string } }) {
+  const document = await getDocument(params.id)
+  if (!document) {
+    return <div>Document not found</div>
   }
+  const comments = await getComments(params.id)
 
-  if (loading) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !document) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-600">{error || 'Document not found'}</p>
-          <Link href="/documents">
-            <Button className="mt-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Documents
-            </Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  // return (
-  //   <div className="container mx-auto p-4">
-  //     <Link href="/documents">
-  //       <Button variant="ghost" className="mb-4">
-  //         <ArrowLeft className="mr-2 h-4 w-4" />
-  //         Back to Documents
-  //       </Button>
-  //     </Link>
-
-  //     <div className="gap-6">
-  //       <Card>
-  //         <CardHeader>
-  //           <CardTitle className="text-2xl font-bold">{document.title}</CardTitle>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <div className="aspect-video relative mb-4 ">
-  //             <Image
-  //               src={document.image}
-  //               alt={document.title}
-  //               fill
-  //               className="rounded-l w-auto h-auto"
-  //             />
-  //           </div>
-  //           <div className="space-y-4">
-  //             <div>
-  //               <h3 className="font-semibold mb-2">Description</h3>
-  //               <p className="text-gray-600">{document.description}</p>
-  //             </div>
-  //             <div className="grid grid-cols-2 gap-4">
-  //               <div>
-  //                 <h3 className="font-semibold mb-2">Category</h3>
-  //                 <p className="text-gray-600">{document.category}</p>
-  //               </div>
-  //               <div>
-  //                 <h3 className="font-semibold mb-2">File Type</h3>
-  //                 <p className="text-gray-600">{document.file_type}</p>
-  //               </div>
-  //               <div>
-  //                 <h3 className="font-semibold mb-2">File Size</h3>
-  //                 <p className="text-gray-600">{document.file_size}</p>
-  //               </div>
-  //             </div>
-  //             <div>
-  //               <h3 className="font-semibold mb-2">Last Updated</h3>
-  //               <p className="text-gray-600">
-  //                 {new Date(document.updated_at).toLocaleDateString()}
-  //               </p>
-  //             </div>
-  //             <div className="pt-4">
-  //               <Button
-  //                 className="w-full"
-  //                 onClick={handleDownload}
-  //                 disabled={!document.link_file}
-  //               >
-  //                 <Download className="mr-2 h-4 w-4" />
-  //                 {document.link_file ? 'Download Document' : 'No Download Available'}
-  //               </Button>
-  //             </div>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   </div>
-  // )
   return (
     <div className="container mx-auto py-6 space-y-8">
       {/* Breadcrumb */}
@@ -244,7 +115,7 @@ export default function DocumentDetail() {
           <div className="mt-4 space-y-4">
             <Button className="w-full" size="lg">
               <Download className="mr-2 h-4 w-4" />
-              Tải xuống ({document.title})
+              Tải xuống ({document.file_type})
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1">
@@ -264,35 +135,14 @@ export default function DocumentDetail() {
           <div>
             <div className="flex flex-wrap gap-2 mb-3">
               <Badge variant="outline" className="bg-primary/10 text-primary">
-                {document.title}
+                {document.file_type}
               </Badge>
               <Badge variant="outline" className="bg-muted">
                 {document.category}
               </Badge>
-              <Badge variant="outline" className="bg-muted">
-                {document.subcategory}
-              </Badge>
             </div>
             <h1 className="text-3xl font-bold mb-3">{document.title}</h1>
             <p className="text-muted-foreground mb-4">{document.description}</p>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex">
-                {Array(Math.floor(document.rating))
-                  .fill(0)
-                  .map((_, i) => (
-                    <StarIcon key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                {document.rating % 1 > 0 && <StarIcon className="h-5 w-5 fill-yellow-400 text-yellow-400" />}
-                {Array(5 - Math.ceil(document.rating))
-                  .fill(0)
-                  .map((_, i) => (
-                    <StarIcon key={i} className="h-5 w-5 text-muted-foreground" />
-                  ))}
-              </div>
-              <span className="text-sm">
-                {document.rating} ({document.ratingCount} đánh giá)
-              </span>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -300,7 +150,7 @@ export default function DocumentDetail() {
               <User className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Tác giả</p>
-                <p>{document.author.name}</p>
+                <p>{document.author}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -314,14 +164,7 @@ export default function DocumentDetail() {
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Ngày xuất bản</p>
-                <p>{document.publishDate}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Ngôn ngữ</p>
-                <p>{document.language}</p>
+                <p>{new Date(document.created_at).toLocaleDateString()}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -331,81 +174,33 @@ export default function DocumentDetail() {
                 <p>{document.downloads.toLocaleString()}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Lượt xem</p>
-                <p>{document.views.toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium mb-2">Thẻ</h3>
-            <div className="flex flex-wrap gap-2">
-              {document.tags.map((tag) => (
-                <Badge key={tag} variant="secondary">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={document.author.avatar || "/placeholder.svg"} alt={document.author.name} />
-                <AvatarFallback>{document.author.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{document.author.name}</p>
-                <p className="text-sm text-muted-foreground">{document.author.title}</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Document Content Tabs */}
-      <Tabs defaultValue="contents" className="space-y-6">
-        <TabsList className="grid w-full md:w-auto grid-cols-3">
-          <TabsTrigger value="contents">Mục lục</TabsTrigger>
-          <TabsTrigger value="comments">Bình luận ({document.comments.length})</TabsTrigger>
-          <TabsTrigger value="related">Tài liệu liên quan</TabsTrigger>
+      <Tabs defaultValue="comments" className="space-y-6">
+        <TabsList className="grid w-full md:w-auto grid-cols-1">
+          <TabsTrigger value="comments">Bình luận ({comments.length})</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="contents" className="space-y-6">
-          <div className="space-y-4">
-            {document.tableOfContents.map((chapter, index) => (
-              <div key={index} className="space-y-2">
-                <h3 className="font-medium">{chapter.title}</h3>
-                <ul className="space-y-1 pl-6">
-                  {chapter.sections.map((section, sIndex) => (
-                    <li key={sIndex} className="text-muted-foreground">
-                      {section}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
 
         <TabsContent value="comments" className="space-y-6">
           <div className="space-y-6">
-            {document.comments.map((comment) => (
+            {comments.map((comment) => (
               <Card key={comment.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <Avatar>
-                      <AvatarImage src={comment.user.avatar || "/placeholder.svg"} alt={comment.user.name} />
-                      <AvatarFallback>{comment.user.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src="/placeholder.svg" alt={comment.username} />
+                      <AvatarFallback>{comment.username.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-medium">{comment.user.name}</p>
-                          <p className="text-sm text-muted-foreground">{comment.date}</p>
+                          <p className="font-medium">{comment.username}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(comment.created_at).toLocaleDateString()}
+                          </p>
                         </div>
                         <Button variant="ghost" size="sm">
                           <ThumbsUp className="h-4 w-4 mr-1" />
@@ -434,34 +229,6 @@ export default function DocumentDetail() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="related" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* {document.relatedDocuments.map((doc) => (
-              <Card key={doc.id} className="overflow-hidden">
-                <div className="aspect-[3/4] relative bg-muted">
-                  <Image src={doc.image || "/placeholder.svg"} alt={doc.title} fill className="object-cover" />
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className="bg-primary/10 text-primary">
-                      {doc.format}
-                    </Badge>
-                    <Badge variant="outline" className="bg-muted">
-                      {doc.category}
-                    </Badge>
-                  </div>
-                  <h3 className="font-medium mb-1">
-                    <Link href={`/documents/${doc.id}`} className="hover:underline">
-                      {doc.title}
-                    </Link>
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{doc.author}</p>
-                </CardContent>
-              </Card>
-            ))} */}
           </div>
         </TabsContent>
       </Tabs>

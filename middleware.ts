@@ -1,31 +1,31 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { verify } from 'jsonwebtoken'
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { jwtVerify } from "jose"
 
-export function middleware(request: NextRequest) {
-    // Allow /admin/login without auth
-    if (request.nextUrl.pathname === '/admin/login') {
-        return NextResponse.next();
+export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/admin") && !request.nextUrl.pathname.startsWith("/admin/login")) {
+    const token = request.cookies.get("admin_token")?.value
+
+    if (!token) {
+      console.log("No token found, redirecting to login")
+      return NextResponse.redirect(new URL("/admin/login", request.url))
     }
 
-    if (request.nextUrl.pathname.startsWith('/admin')) {
-        const token = request.cookies.get('auth_token')
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_do_not_use_in_production")
 
-        if (!token) {
-            return NextResponse.redirect(new URL('/admin/login', request.url))
-        }
+      await jwtVerify(token, secret)
+      console.log("Token verified successfully")
 
-        try {
-            const decoded = verify(token.value, process.env.JWT_SECRET || 'your-secret-key')
-            return NextResponse.next()
-        } catch (error) {
-            return NextResponse.redirect(new URL('/admin/login', request.url))
-        }
+    } catch (error) {
+      console.error("Token verification error:", error)
+      return NextResponse.redirect(new URL("/admin/login", request.url))
     }
+  }
 
-    return NextResponse.next()
+  return NextResponse.next()
 }
 
 export const config = {
-    matcher: '/admin/:path*'
-} 
+  matcher: ["/admin/:path*"],
+}
